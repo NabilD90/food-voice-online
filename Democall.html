@@ -89,5 +89,87 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (() => {
+        const webhookUrl = "https://n8n.zenowa.de/webhook/a4b8ed25-fca2-41dd-ba4a-82c72b695ed7";
+        const supabaseUrl = "https://xxfcqtoobsyzsrysjbje.supabase.co/functions/v1/send-contact-email";
+        const supabaseKey =
+          "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZmNxdG9vYnN5enNyeXNqYmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjM1ODUsImV4cCI6MjA3NjYzOTU4NX0.E0EKBJ3FW2UgN2HhKFsKCspFLj4NI-o4_iXNHlXR568";
+
+        const normalizePhone = (raw) => {
+          if (!raw) return "";
+          let cleaned = raw.replace(/[^\d+]/g, "");
+          if (cleaned.startsWith("+00")) cleaned = "+" + cleaned.slice(3);
+          if (cleaned.startsWith("00")) cleaned = "+" + cleaned.slice(2);
+          if (cleaned.startsWith("+")) {
+            const digits = cleaned.slice(1).replace(/\D/g, "");
+            return digits ? "+" + digits : "";
+          }
+          const digits = cleaned.replace(/\D/g, "");
+          if (!digits) return "";
+          return digits.startsWith("0") ? "+49" + digits.slice(1) : "+" + digits;
+        };
+
+        const attachHandler = () => {
+          const form = document.querySelector('form input[name="phone"]')?.closest("form");
+          if (!form || form.dataset.voiceAgentAttached) return;
+          form.dataset.voiceAgentAttached = "true";
+
+          const status = document.createElement("p");
+          status.style.marginTop = "0.5rem";
+          status.style.fontSize = "0.9rem";
+          form.append(status);
+
+          form.addEventListener(
+            "submit",
+            async (event) => {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+
+              const getValue = (name) => form.querySelector(`[name="${name}"]`)?.value.trim() || "";
+              const payload = {
+                company: getValue("company"),
+                name: getValue("name"),
+                email: getValue("email"),
+                phone: normalizePhone(getValue("phone")),
+                message: getValue("message"),
+              };
+
+              status.textContent = "";
+              status.style.color = "#6B7280";
+
+              try {
+                const emailResponse = await fetch(supabaseUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: supabaseKey },
+                  body: JSON.stringify(payload),
+                });
+                const emailResult = await emailResponse.json();
+                if (!emailResponse.ok || !emailResult.success) throw new Error(emailResult.message || "Fehler beim Senden");
+
+                const webhookResponse = await fetch(webhookUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ phone: payload.phone, name: payload.name }),
+                });
+                if (!webhookResponse.ok) throw new Error("Fehler beim Auslösen des Voice-Agenten");
+
+                status.textContent = emailResult.message || "Vielen Dank! Wir melden uns schnellstmöglich.";
+                status.style.color = "#10B981";
+                form.reset();
+              } catch (error) {
+                status.textContent = error.message || "Es gab ein Problem beim Senden. Bitte erneut versuchen.";
+                status.style.color = "#EF4444";
+              }
+            },
+            true
+          );
+        };
+
+        const observer = new MutationObserver(attachHandler);
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+        attachHandler();
+      })();
+    </script>
   </body>
 </html>
