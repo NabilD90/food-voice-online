@@ -1110,6 +1110,35 @@
             document.body.style.overflow = 'auto';
         }
 
+        // Telefonnummern formatieren
+        function formatPhoneNumber(input) {
+            if (!input) return '';
+
+            // Leerzeichen, Bindestriche und Klammern entfernen
+            let number = input.replace(/[\s\-()]/g, '');
+
+            // 00-Präfix in + konvertieren
+            if (number.startsWith('00')) {
+                number = '+' + number.slice(2);
+            }
+
+            // Falls keine Landesvorwahl angegeben ist, Standard auf +49 setzen
+            if (!number.startsWith('+')) {
+                if (number.startsWith('0')) {
+                    number = '+49' + number.slice(1);
+                } else {
+                    number = '+49' + number;
+                }
+            }
+
+            // Nach der Normalisierung müssen nur noch Ziffern nach dem + folgen
+            if (!number.match(/^\+[0-9]+$/)) {
+                return '';
+            }
+
+            return number;
+        }
+
         // Click outside to close
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
@@ -1137,9 +1166,16 @@
             }
 
             // Validierung
-            const phone = document.getElementById('phone').value;
-            if (!phone.match(/^[\d\s\+\-\(\)]+$/)) {
+            const rawPhone = document.getElementById('phone').value;
+            if (!rawPhone.match(/^[\d\s\+\-\(\)]+$/)) {
                 showError('Bitte gib eine gültige Telefonnummer ein.');
+                return;
+            }
+
+            const phone = formatPhoneNumber(rawPhone);
+
+            if (!phone) {
+                showError('Bitte gib eine gültige Telefonnummer im internationalen Format ein.');
                 return;
             }
 
