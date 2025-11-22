@@ -866,6 +866,11 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="alternate-contact">Weiterer Ansprechpartner (optional)</label>
+                            <input type="text" id="alternate-contact" name="alternate-contact" placeholder="z.B. Lucia Rossi">
+                        </div>
+
+                        <div class="form-group">
                             <label for="phone">Telefon *</label>
                             <input type="tel" id="phone" name="phone" placeholder="+49 123 456789" required>
                         </div>
@@ -1186,10 +1191,12 @@
 
             // Formulardaten sammeln
             const contactName = document.getElementById('contact').value;
+            const alternateContact = document.getElementById('alternate-contact').value;
             const formData = {
                 company: document.getElementById('company').value,
                 contact: contactName,
                 name: contactName,
+                alternateContact: alternateContact,
                 phone: phone,
                 email: document.getElementById('email').value,
                 timestamp: new Date().toISOString()
