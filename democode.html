@@ -1102,6 +1102,10 @@
         // N8N Webhook URL
         const WEBHOOK_URL = 'https://n8n.zenowa.de/webhook/a4b8ed25-fca2-41dd-ba4a-82c72b695ed7';
 
+        // Supabase Edge Function for sending notification emails
+        const EMAIL_FUNCTION_URL = 'https://xxfcqtoobsyzsrysjbje.supabase.co/functions/v1/send-contact-email';
+        const EMAIL_FUNCTION_TOKEN = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4ZmNxdG9vYnN5enNyeXNqYmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwNjM1ODUsImV4cCI6MjA3NjYzOTU4NX0.E0EKBJ3FW2UgN2HhKFsKCspFLj4NI-o4_iXNHlXR568';
+
         // Modal Functions
         function openModal(type) {
             const modal = document.getElementById(type + '-modal');
@@ -1203,6 +1207,29 @@
             };
 
             try {
+                // E-Mail-Benachrichtigung wie auf der Hauptseite auslösen
+                const emailResponse = await fetch(EMAIL_FUNCTION_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': EMAIL_FUNCTION_TOKEN
+                    },
+                    body: JSON.stringify({
+                        company: formData.company,
+                        name: formData.contact,
+                        email: formData.email,
+                        phone: formData.phone,
+                        message: formData.alternateContact
+                            ? `Weiterer Ansprechpartner: ${formData.alternateContact}`
+                            : 'Kein weiterer Ansprechpartner angegeben.'
+                    })
+                });
+
+                const emailResult = await emailResponse.json();
+                if (!emailResponse.ok || !emailResult.success) {
+                    throw new Error('E-Mail konnte nicht gesendet werden.');
+                }
+
                 // An n8n Webhook senden
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
